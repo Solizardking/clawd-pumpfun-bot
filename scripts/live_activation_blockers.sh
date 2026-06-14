@@ -18,6 +18,22 @@ json_string() {
   jq -Rn --arg v "${1:-}" '$v'
 }
 
+json_array() {
+  if [[ "$#" -eq 0 ]]; then
+    printf "[]"
+  else
+    printf "%s\n" "$@" | sed '/^$/d' | jq -R . | jq -s .
+  fi
+}
+
+unique_json_array() {
+  if [[ "$#" -eq 0 ]]; then
+    printf "[]"
+  else
+    printf "%s\n" "$@" | sed '/^$/d' | awk '!seen[$0]++' | jq -R . | jq -s .
+  fi
+}
+
 env_value() {
   local key="$1"
   if [[ ! -f "$ENV_FILE" ]]; then
@@ -111,9 +127,9 @@ else
   next_steps+=("Verify/fund the hot wallet with ./scripts/wallet_balance_check.sh")
 fi
 
-failures_json="$(printf "%s\n" "${failures[@]}" | sed '/^$/d' | jq -R . | jq -s .)"
-warnings_json="$(printf "%s\n" "${warnings[@]}" | sed '/^$/d' | jq -R . | jq -s .)"
-next_steps_json="$(printf "%s\n" "${next_steps[@]}" | sed '/^$/d' | awk '!seen[$0]++' | jq -R . | jq -s .)"
+failures_json="$(json_array "${failures[@]+"${failures[@]}"}")"
+warnings_json="$(json_array "${warnings[@]+"${warnings[@]}"}")"
+next_steps_json="$(unique_json_array "${next_steps[@]+"${next_steps[@]}"}")"
 
 cat <<JSON
 {
